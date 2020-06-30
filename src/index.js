@@ -2,6 +2,19 @@
 import { mergeUrl } from './tools'
 
 /**
+ * defaultConfig
+ * @param { Object } DefaultConfig
+ * @param { string } [config.baseUrl]
+ * @param { string } [config.method]
+ * @param { string } [config.dataType]
+ * @param { string } [config.responseType]
+ * @param { string } [config.fileName]
+ * @param { boolean } [config.showLoading]
+ * @param { object } [config.header]
+ * @param { object } [config.custom]
+ */
+
+/**
  * request参数
  * @typedef RequestOptions
  * @property { 'GET' | 'POST' } method
@@ -37,52 +50,40 @@ import { mergeUrl } from './tools'
  */
 class Request {
   /**
-   * @private
-   */
-  defaults = {}
-  /**
-   *
-   * @param { Object } config
-   * @param { string } [config.baseUrl]
-   * @param { string } [config.method]
-   * @param { string } [config.dataType]
-   * @param { string } [config.responseType]
-   * @param { string } [config.fileName]
-   * @param { boolean } [config.showLoading]
-   * @param { object } [config.header]
-   * @param { object } [config.custom]
+   * @param { DefaultConfig } config
    */
   constructor(config = {}) {
-    this.defaults.baseUrl = config.baseUrl || ''
-    this.defaults.method = config.method || 'GET'
-    this.defaults.dataType = config.dataType || 'json'
-    this.defaults.responseType = config.responseType || 'text'
-    this.defaults.fileName = config.fileName || 'file'
-    this.defaults.showLoading = config.showLoading || false
-    this.defaults.header = {
+    // 默认参数
+    let defaults = {}
+    defaults.baseUrl = config.baseUrl || ''
+    defaults.method = config.method || 'GET'
+    defaults.dataType = config.dataType || 'json'
+    defaults.responseType = config.responseType || 'text'
+    defaults.fileName = config.fileName || 'file'
+    defaults.showLoading = config.showLoading || false
+    defaults.header = {
       'content-type': 'application/json',
       ...config.header,
     }
-    this.defaults.custom = config.custom || {}
-  }
+    defaults.custom = config.custom || {}
+    this.defaults = defaults
 
-  /**
-   * 拦截器初始化
-   */
-  interceptor = {
-    request: (cb) => {
-      if (cb) {
-        this._requestBeforeFun = cb
-      }
-    },
-    response: (cb, ecb) => {
-      if (cb) {
-        this._requestComFun = cb
-      }
-      if (ecb) {
-        this._requestComFail = ecb
-      }
-    },
+    // 拦截器初始化
+    this.interceptor = {
+      request: (cb) => {
+        if (cb) {
+          this._requestBeforeFun = cb
+        }
+      },
+      response: (cb, ecb) => {
+        if (cb) {
+          this._requestComFun = cb
+        }
+        if (ecb) {
+          this._requestComFail = ecb
+        }
+      },
+    }
   }
 
   /**
@@ -124,7 +125,7 @@ class Request {
    * @returns { Promise<any> }
    */
   get(url, params = {}, options = {}) {
-    return this.request({ method: 'GET', url, params, ...options })
+    return this.request(Object.assign({ method: 'GET', url, params }, options))
   }
   /**
    * post请求别名
@@ -134,7 +135,7 @@ class Request {
    * @returns { Promise<any> }
    */
   post(url, data = {}, options) {
-    return this.request({ method: 'POST', url, data, ...options })
+    return this.request(Object.assign({ method: 'POST', url, data }, options))
   }
   /**
    * upload请求别名
@@ -147,7 +148,7 @@ class Request {
     if (!options.header['Content-Type']) {
       options.header['Content-Type'] = 'multipart/form-data'
     }
-    return this.uploadFile(Object.assign({}, { url, filePath }, options))
+    return this.uploadFile(Object.assign({ url, filePath }, options))
   }
 
   /**
@@ -164,16 +165,13 @@ class Request {
    */
   request(options) {
     return this.handler(options, (_config, resolve, reject) => {
-      let config = {
+      const requestTask = wx.request({
         url: _config.path,
         data: _config.data,
         header: _config.header,
         method: _config.method,
         dataType: _config.dataType,
         responseType: _config.responseType,
-      }
-      const requestTask = wx.request({
-        ...config,
         complete: (response) => {
           this.handlerResult(response, _config, resolve, reject)
         },
@@ -191,15 +189,12 @@ class Request {
    */
   uploadFile(options) {
     return this.handler(options, (_config, resolve, reject) => {
-      let config = {
+      const uploadTask = wx.uploadFile({
         url: _config.path,
         filePath: _config.filePath,
         name: _config.fileName,
         formData: _config.data,
         header: _config.header,
-      }
-      const uploadTask = wx.uploadFile({
-        ...config,
         complete: (response) => {
           if (_config.dataType == 'json') {
             response.data = JSON.parse(response.data)
@@ -227,7 +222,7 @@ class Request {
     _options.url = options.url || ''
     _options.params = options.params || {}
     _options.data = options.data || {}
-    _options.header = { ...this.defaults.header, ...(options.header || {}) }
+    _options.header = Object.assign({}, this.defaults.header, options.header || {})
     _options.dataType = options.dataType || this.defaults.dataType
     _options.responseType = options.responseType || this.defaults.responseType
     _options.timeout = options.timeout || this.defaults.timeout
@@ -236,7 +231,7 @@ class Request {
     _options.onUploadProgress = options.onUploadProgress
     _options.getTask = options.getTask || this.defaults.getTask
     _options.showLoading = options.showLoading || this.defaults.showLoading
-    _options.custom = { ...this.defaults.custom, ...(options.custom || {}) }
+    _options.custom = Object.assign({}, this.defaults.custom, options.custom || {})
 
     return new Promise((resolve, reject) => {
       let next = true
