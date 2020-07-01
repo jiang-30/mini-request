@@ -248,7 +248,7 @@ class Request {
       if (_config.showLoading) {
         wx.showLoading({ title: '加载中...' })
       }
-      _config.path = mergeUrl(_config.url, _config.baseUrl, _config.params)
+      _config.path = mergeUrl(_config.baseUrl, _config.url, _config.params)
       callback(_config, resolve, reject)
     })
   }
