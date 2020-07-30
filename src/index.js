@@ -62,7 +62,7 @@ class Request {
     defaults.fileName = config.fileName || 'file'
     defaults.showLoading = config.showLoading || false
     defaults.header = {
-      'content-type': 'application/json',
+      'Content-Type': 'application/json',
       ...config.header,
     }
     defaults.custom = config.custom || {}
