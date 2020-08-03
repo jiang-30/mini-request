@@ -23,7 +23,7 @@ const request = new Request({
   header:  { 'Content-Type': 'application/json' }
 })
 ```
-
+- Content-Type 在 upload 中会被设置成 'multipart/form-data'【v1.0.1】
 
 
 ### 拦截器
@@ -47,6 +47,7 @@ const request = new Request({
 - 请求后拦截
 
     请求后拦截分为 正常返回  和 异常 返回（wx.request 中 res.statusCode !== 200 ）
+    返回数据可以是一个promise，如果返回的promise是reject 会到catch 
 
     ```js
     // 请求后拦截 可以对异常进行统一处理
@@ -131,5 +132,7 @@ const request = new Request({
 
 
 ## 版本
+### 1.0.0
+- 修改 upload 是请求头设置不争取的问题
 
 ### 1.0.0

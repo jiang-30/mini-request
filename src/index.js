@@ -145,9 +145,7 @@ class Request {
    */
   upload(url, filePath, options = {}) {
     options.header = options.header || {}
-    if (!options.header['Content-Type']) {
-      options.header['Content-Type'] = 'multipart/form-data'
-    }
+    options.header['Content-Type'] = 'multipart/form-data'
     return this.uploadFile(Object.assign({ url, filePath }, options))
   }
 
