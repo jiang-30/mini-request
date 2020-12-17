@@ -132,7 +132,7 @@ const request = new Request({
 
 
 ## 版本
-### 1.0.0
+### 1.0.1
 - 修改 upload 是请求头设置不争取的问题
 
 ### 1.0.0

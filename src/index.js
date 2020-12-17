@@ -1,5 +1,5 @@
 'use strict'
-import { mergeUrl } from './tools'
+import { mergeUrl } from './utils/tools'
 
 /**
  * defaultConfig
@@ -8,8 +8,8 @@ import { mergeUrl } from './tools'
  * @param { string } [config.method]
  * @param { string } [config.dataType]
  * @param { string } [config.responseType]
+ * @param { number } [config.timeout]
  * @param { string } [config.fileName]
- * @param { boolean } [config.showLoading]
  * @param { object } [config.header]
  * @param { object } [config.custom]
  */
@@ -26,7 +26,6 @@ import { mergeUrl } from './tools'
  * @property { string } responseType
  * @property { number } timeout
  * @property { function } getTask
- * @property { boolean } showLoading
  * @property { Object } custom
  */
 
@@ -46,7 +45,7 @@ import { mergeUrl } from './tools'
  */
 
 /**
- * 请求封装
+ * wx 请求封装
  */
 class Request {
   /**
@@ -59,8 +58,8 @@ class Request {
     defaults.method = config.method || 'GET'
     defaults.dataType = config.dataType || 'json'
     defaults.responseType = config.responseType || 'text'
+    defaults.timeout = config.timeout || 30000
     defaults.fileName = config.fileName || 'file'
-    defaults.showLoading = config.showLoading || false
     defaults.header = {
       'Content-Type': 'application/json',
       ...config.header,
@@ -95,13 +94,12 @@ class Request {
   }
 
   /**
-   * 请求后拦截
+   * 请求后拦截 必须返回一个Promise对象
    * @private
    */
   _requestComFun(response) {
-    return response
+    return Promise.resolve(response)
   }
-
   /**
    * 请求失败拦截
    * @private
@@ -109,6 +107,7 @@ class Request {
   _requestComFail(response) {
     return response
   }
+
 
   /**
    * 定义失败
@@ -138,25 +137,25 @@ class Request {
     return this.request(Object.assign({ method: 'POST', url, data }, options))
   }
   /**
-   * upload请求别名
+   * post请求别名
    * @param { string } url
-   * @param { string } filePath
-   * @param { UploadOptions } options
+   * @param { Object } data
+   * @param { RequestOptions } options
+   * @returns { Promise<any> }
    */
-  upload(url, filePath, options = {}) {
-    options.header = options.header || {}
-    options.header['Content-Type'] = 'multipart/form-data'
-    return this.uploadFile(Object.assign({ url, filePath }, options))
+  put(url, data = {}, options) {
+    return this.request(Object.assign({ method: 'PUT', url, data }, options))
   }
-
   /**
-   * download请求别名
+   * get请求别名
    * @param { string } url
-   * @param { string } filePath
-   * @param { object } options
+   * @param { Object } params
+   * @param { RequestOptions } options
+   * @returns { Promise<any> }
    */
-  download() {}
-
+  delete(url, params = {}, options = {}) {
+    return this.request(Object.assign({ method: 'DELETE', url, params }, options))
+  }
   /**
    *  网路请求
    * @param { RequestOptions } options
@@ -178,6 +177,17 @@ class Request {
         _config.getTask(requestTask, _config)
       }
     })
+  }
+  /**
+   * upload请求别名
+   * @param { string } url
+   * @param { string } filePath
+   * @param { UploadOptions } options
+   */
+  upload(url, filePath, options = {}) {
+    options.header = options.header || {}
+    options.header['Content-Type'] = 'multipart/form-data'
+    return this.uploadFile(Object.assign({ url, filePath }, options))
   }
 
   /**
@@ -208,15 +218,23 @@ class Request {
       }
     })
   }
+  /**
+   * download请求别名
+   * @param { string } url
+   * @param { string } filePath
+   * @param { object } options
+   */
+  download() {}
   downLoadFile(_options) {}
 
   /**
+   * 参数合并和格式化
    * @private
    */
   handler(options, callback) {
     let _options = {}
     _options.baseUrl = this.defaults.baseUrl
-    _options.method = options.method || this.defaults.method
+    _options.method = (options.method || this.defaults.method).toUpperCase()
     _options.url = options.url || ''
     _options.params = options.params || {}
     _options.data = options.data || {}
@@ -228,7 +246,6 @@ class Request {
     _options.fileName = options.fileName || this.defaults.fileName
     _options.onUploadProgress = options.onUploadProgress
     _options.getTask = options.getTask || this.defaults.getTask
-    _options.showLoading = options.showLoading || this.defaults.showLoading
     _options.custom = Object.assign({}, this.defaults.custom, options.custom || {})
 
     return new Promise((resolve, reject) => {
@@ -243,9 +260,6 @@ class Request {
       }
       const _config = this._requestBeforeFun(_options, cancel)
       if (!next) return
-      if (_config.showLoading) {
-        wx.showLoading({ title: '加载中...' })
-      }
       _config.path = mergeUrl(_config.baseUrl, _config.url, _config.params)
       callback(_config, resolve, reject)
     })
@@ -264,9 +278,6 @@ class Request {
     } else {
       response = this._requestComFail(response)
       reject(response)
-    }
-    if (config.showLoading) {
-      wx.hideLoading()
     }
   }
 }
